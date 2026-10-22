@@ -3,7 +3,7 @@
     x:Class="WanStudio.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="WanStudio">
+    Title="WanStudio 万象工作台">
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>

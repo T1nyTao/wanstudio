@@ -4,6 +4,11 @@
     <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>WanStudio</RootNamespace>
+    <!-- 程序集显示信息：WanStudio 是英文名，万象工作台是中文名 -->
+    <AssemblyTitle>WanStudio 万象工作台</AssemblyTitle>
+    <Product>WanStudio 万象工作台</Product>
+    <Description>Windows 桌面端 AI 视频生成工作台，接入千问AI平台与阿里云百炼</Description>
+    <Version>0.1.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets\AppIcon.ico')">Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x86;x64;ARM64</Platforms>

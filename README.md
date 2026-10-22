@@ -1,4 +1,4 @@
-# WanStudio
+# WanStudio · 万象工作台
 
 Windows 桌面端 AI 视频生成工作台，接入 **千问AI平台** 与 **阿里云百炼**。
 
