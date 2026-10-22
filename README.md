@@ -81,11 +81,27 @@ dotnet build -p:Platform=x64
 > 本项目**只保留 Release 配置**：`Configuration` 在 csproj 里强制为 Release，输出路径也拍平到 `bin/<platform>/`，不会产生 `bin/x64/Debug` 这类目录。
 > 这是有意的——Debug/Release 混用会导致「改了代码跑的还是旧版本」，排查问题时极容易被误导。
 
-### 一个必须注意的坑
+### 怎么运行（只有一个目录）
 
-**从工作目录里直接运行 exe，可能无法生成视频。** ffmpeg 需要在可写目录里落临时文件，某些目录（例如被同步/沙箱化的路径）会拒绝写入，表现为「首帧提取失败」。
+双击项目根目录的 **`启动.cmd`**：它会检查是否已构建，没构建就先构建，然后启动。
 
-把 `bin/x64/` 整个复制到普通目录（例如桌面）再运行即可。
+命令行等价写法：
+
+```bash
+dotnet build WanStudio\WanStudio.csproj -p:Platform=x64
+WanStudio\bin\x64\WanStudio.exe
+```
+
+**就一个目录，不需要再复制一份到别处。** 早先版本建议把 `bin/x64/` 拷到桌面另跑，那是受限环境下的临时规避；现在 `AppPaths` 加了「exe 同级目录」兜底，任何环境下都能找到可写位置，副本因此取消。
+
+数据目录按以下顺序选择第一个可写的位置（不会丢数据，只是换地方）：
+
+```
+%LOCALAPPDATA%\WanStudio    ← 正常情况用它
+%USERPROFILE%\.wanstudio    ← 上面写不进时
+%TEMP%\WanStudio            ← 再不行时
+<exe 同级>\WanStudioData     ← 最后兜底（便携运行 / 受限环境）
+```
 
 ---
 

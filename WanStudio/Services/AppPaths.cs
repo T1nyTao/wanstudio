@@ -132,6 +132,14 @@ public static class AppPaths
             yield return Path.Combine(profile, ".wanstudio");
 
         yield return Path.Combine(Path.GetTempPath(), "WanStudio");
+
+        // 最后兜底：exe 同级目录。给「便携运行」和「写不进用户目录」的环境留一条活路
+        // （受限/受控环境下，用户配置目录可能整片禁止写入，连 TEMP 都写不进）。
+        // 放在最后是因为它会写在程序目录旁边，正常安装位置可能不可写——探测会挡掉。
+        string? exeDir = null;
+        try { exeDir = Path.GetDirectoryName(Environment.ProcessPath); } catch { }
+        if (!string.IsNullOrWhiteSpace(exeDir))
+            yield return Path.Combine(exeDir!, "WanStudioData");
     }
 
     /// <summary>目录可写性探测：建目录 + 写探针 + 删探针。</summary>
