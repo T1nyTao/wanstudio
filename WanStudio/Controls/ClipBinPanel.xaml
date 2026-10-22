@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WanStudio.Controls.ClipBinPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!--
+            卡片模板：左栏右栏共用一份。
+            用 {Binding}（禁用 x:Bind），行模型见 ClipBinRow。
+        -->
+        <DataTemplate x:Key="ClipCardTemplate">
+            <Border Width="{Binding CardWidth}" Height="188"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{Binding CardBorderBrush}"
+                    BorderThickness="{Binding CardBorderThickness}"
+                    CornerRadius="10" Padding="8" Margin="5">
+                <Grid RowSpacing="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="92" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 缩略图 + 续接角标 + 删除 -->
+                    <Grid>
+                        <Border CornerRadius="6" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                            <Grid>
+                                <TextBlock Text="无缩略图" FontSize="11" Opacity="0.4"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Image Source="{Binding Thumb}" Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+
+                        <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                CornerRadius="0,6,0,6" Padding="6,2"
+                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Visibility="{Binding ContinueBadgeVisibility}">
+                            <TextBlock Text="续接源" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                        </Border>
+
+                        <Button Content="✕" FontSize="10" Width="22" Height="22" Padding="0"
+                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Tag="{Binding ItemId}" Click="Delete_Click"
+                                ToolTipService.ToolTip="从素材库移除（不删本地文件）" />
+
+                        <!-- 预览：不抢占卡片点击（卡片点击是选中） -->
+                        <Button Content="▶" FontSize="11" Width="26" Height="22" Padding="0"
+                                HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                Margin="4" Tag="{Binding ItemId}" Click="Preview_Click"
+                                ToolTipService.ToolTip="预览这个片段" />
+                    </Grid>
+
+                    <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <StackPanel Grid.Row="2" Spacing="1">
+                        <TextBlock Text="{Binding SourceLabel}" FontSize="11" Opacity="0.7"
+                                   TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="{Binding DurationLabel}" FontSize="11" Opacity="0.9" />
+                            <TextBlock Text="{Binding StatusLabel}" FontSize="11" Opacity="0.55" />
+                        </StackPanel>
+                        <Border Background="{ThemeResource ControlFillColorTertiaryBrush}"
+                                CornerRadius="4" Padding="5,1" HorizontalAlignment="Left"
+                                Visibility="{Binding CategoryVisibility}">
+                            <TextBlock Text="{Binding CategoryLabel}" FontSize="10" Opacity="0.85" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!--
+        双栏素材库：左「待生成素材」/ 右「已生成（可续接）」。
+
+        刻意不用 x:Bind：同页多个 x:Bind DataTemplate 会打崩 XAML 编译器
+        （WMC9999 / WMC0610），所以卡片模板一律经典 {Binding}。
+        也刻意不引用 HintText / CardBorder 等页面私有资源 —— UserControl 拿不到，
+        会抛 XamlParseException 把宿主页整个打挂；这里统一用 App 级设计令牌。
+    -->
+    <StackPanel Spacing="14">
+
+        <!-- 标题 + 工具行：导入、裁切、分类、刷新都在素材库里 -->
+        <Grid ColumnSpacing="12" RowSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="2">
+                <TextBlock x:Name="HeaderBlock" Style="{StaticResource SectionTitle}" Text="素材库" />
+                <TextBlock x:Name="HeaderSubBlock" Style="{StaticResource CaptionText}"
+                           Text="左边是裁好还没生成的片段，右边是已生成的视频，可挑一段接着续写。" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="ImportButton" Content="导入素材" Click="Import_Click"
+                        ToolTipService.ToolTip="导入视频到素材库；超过单段上限会自动裁切" />
+                <Button x:Name="CategorizeButton" Content="分类所选…" Click="Categorize_Click"
+                        ToolTipService.ToolTip="给左栏勾选的素材设置分类" />
+                <Button Content="刷新" Click="Refresh_Click" />
+            </StackPanel>
+
+            <!-- 裁切设置已移到左栏「原视频」区，这里不再重复 -->
+        </Grid>
+
+        <!-- 卡片大小（低频控制，收在一行，别抢主线注意力） -->
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="卡片大小" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+            <Slider x:Name="SizeSlider" Width="140" Minimum="110" Maximum="220"
+                    StepFrequency="10" ValueChanged="SizeSlider_ValueChanged"
+                    VerticalAlignment="Center" />
+            <TextBlock x:Name="SelectionBlock" Style="{StaticResource CaptionText}"
+                       VerticalAlignment="Center" Margin="12,0,0,0" />
+        </StackPanel>
+
+        <!-- 双栏：宽度不够时自动改成上下堆叠（见 SizeChanged） -->
+        <Grid x:Name="BinColumns" ColumnSpacing="20" RowSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftCol" Width="*" />
+                <ColumnDefinition x:Name="DividerCol" Width="1" />
+                <ColumnDefinition x:Name="RightCol" Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="TopRow" Height="Auto" />
+                <RowDefinition x:Name="BottomRow" Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 左：原视频 → 裁切 → 素材片段 -->
+            <StackPanel x:Name="LeftPane" Spacing="10" Grid.Row="0" Grid.Column="0">
+
+                <!-- ① 原视频：导入后先待在这里，用户决定要不要切 -->
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="RawHeader" FontWeight="SemiBold" FontSize="14"
+                               Text="原视频（0）" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" x:Name="RawHint" Style="{StaticResource CaptionText}"
+                               VerticalAlignment="Center" Text="导入后不会自动裁" />
+                </Grid>
+
+                <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="{StaticResource RadiusControl}" Padding="2">
+                    <GridView x:Name="RawGrid" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="RawGrid_ItemClick" MaxHeight="200" MinHeight="80">
+                        <GridView.ItemContainerTransitions>
+                            <TransitionCollection>
+                                <AddDeleteThemeTransition />
+                                <EntranceThemeTransition FromHorizontalOffset="16" />
+                            </TransitionCollection>
+                        </GridView.ItemContainerTransitions>
+                    </GridView>
+                </Border>
+                <TextBlock x:Name="RawEmpty" Style="{StaticResource CaptionText}"
+                           Text="还没有原视频：点上方「导入素材」把视频加进来。" />
+
+                <!-- 裁切操作：只对勾选的原视频生效 -->
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="裁成每段" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                    <NumberBox x:Name="CutSecondsBox" Width="96" Minimum="1" Maximum="30" SmallChange="1"
+                               SpinButtonPlacementMode="Compact" VerticalAlignment="Center"
+                               ValueChanged="CutSecondsBox_ValueChanged" />
+                    <TextBlock Text="秒" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                    <Button x:Name="CutSelectedButton" Content="裁切所选原视频" Click="CutSelected_Click"
+                            Style="{StaticResource AccentButtonStyle}"
+                            ToolTipService.ToolTip="把勾选的原视频按上面的秒数切片，切片后进入下方素材片段" />
+                </StackPanel>
+
+                <!-- ② 素材片段：裁好的才在这里 -->
+                <Grid ColumnSpacing="8" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="LeftHeader" FontWeight="SemiBold" FontSize="14"
+                               Text="素材片段（0）" VerticalAlignment="Center" />
+                    <ComboBox x:Name="MaterialFilter" Grid.Column="1" Width="130" VerticalAlignment="Center"
+                              SelectionChanged="MaterialFilter_SelectionChanged"
+                              ToolTipService.ToolTip="素材分类筛选" />
+                    <Button Grid.Column="2" Content="管理分类" FontSize="12" Padding="8,4"
+                            Click="ManageMaterialCategories_Click"
+                            ToolTipService.ToolTip="新建 / 改名 / 删除素材分类" />
+                </Grid>
+                <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="{StaticResource RadiusControl}" Padding="2">
+                    <GridView x:Name="PendingGrid" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="PendingGrid_ItemClick" MaxHeight="300" MinHeight="100">
+                        <GridView.ItemContainerTransitions>
+                            <TransitionCollection>
+                                <AddDeleteThemeTransition />
+                                <EntranceThemeTransition FromHorizontalOffset="16" />
+                                <RepositionThemeTransition />
+                            </TransitionCollection>
+                        </GridView.ItemContainerTransitions>
+                    </GridView>
+                </Border>
+                <TextBlock x:Name="PendingEmpty" Style="{StaticResource CaptionText}"
+                           Text="还没有素材片段：先导入原视频，再点「裁切所选原视频」。" />
+            </StackPanel>
+
+            <!-- 分隔线 -->
+            <Rectangle x:Name="Divider" Grid.Column="1" Grid.Row="0"
+                       Fill="{ThemeResource DividerStrokeColorDefaultBrush}"
+                       Width="1" HorizontalAlignment="Center" />
+
+            <!-- 右：已生成（续接源） -->
+            <StackPanel x:Name="RightPane" Grid.Column="2" Grid.Row="0" Spacing="8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="RightHeader" FontWeight="SemiBold" FontSize="14"
+                               Text="已生成（0）" VerticalAlignment="Center" />
+                    <ComboBox x:Name="GeneratedFilter" Grid.Column="1" Width="130" VerticalAlignment="Center"
+                              SelectionChanged="GeneratedFilter_SelectionChanged"
+                              ToolTipService.ToolTip="已生成分类筛选" />
+                    <Button Grid.Column="2" Content="管理分类" FontSize="12" Padding="8,4"
+                            Click="ManageGeneratedCategories_Click"
+                            ToolTipService.ToolTip="新建 / 改名 / 删除已生成分类" />
+                </Grid>
+                <Border Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="{StaticResource RadiusControl}" Padding="2">
+                    <GridView x:Name="GeneratedGrid" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="GeneratedGrid_ItemClick" MaxHeight="360" MinHeight="120">
+                        <GridView.ItemContainerTransitions>
+                            <TransitionCollection>
+                                <AddDeleteThemeTransition />
+                                <EntranceThemeTransition FromHorizontalOffset="16" />
+                                <RepositionThemeTransition />
+                            </TransitionCollection>
+                        </GridView.ItemContainerTransitions>
+                    </GridView>
+                </Border>
+                <TextBlock x:Name="GeneratedEmpty" Style="{StaticResource CaptionText}"
+                           Text="还没有生成结果：生成成功的视频会出现在这里，并可挑一段作续接源。" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="ContinueHint" Style="{StaticResource CaptionText}" />
+
+        <!-- 预览：点卡片 / 点「▶」都会在这里播放，不跳页 -->
+        <Border x:Name="PreviewPanel" Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                CornerRadius="{StaticResource RadiusControl}" Padding="12" Visibility="Collapsed">
+            <StackPanel Spacing="8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="PreviewTitle" FontWeight="SemiBold" FontSize="13"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="关闭预览" FontSize="12" Padding="8,4"
+                            Click="ClosePreview_Click" />
+                </Grid>
+                <MediaPlayerElement x:Name="PreviewPlayer" Height="260" Stretch="Uniform"
+                                    AreTransportControlsEnabled="True" />
+                <TextBlock x:Name="PreviewMeta" Style="{StaticResource CaptionText}" />
+            </StackPanel>
+        </Border>
+
+        <!-- 导入/裁切/分类的操作结果 -->
+        <InfoBar x:Name="ImportResult" IsOpen="False" IsClosable="True" Severity="Informational" />
+    </StackPanel>
+</UserControl>

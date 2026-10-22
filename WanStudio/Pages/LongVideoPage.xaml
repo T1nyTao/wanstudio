@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WanStudio.Pages.LongVideoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:svc="using:WanStudio.Services"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer>
+        <StackPanel Padding="24,20,24,32" Spacing="16" MaxWidth="1080" HorizontalAlignment="Left">
+
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="长视频" />
+                <TextBlock Style="{StaticResource HintText}" FontSize="13"
+                           Text="导入 → 切段（固定秒 / 切镜）→ 预览确认 → 勾选生成 → 进池 → 官方续接。切段与预览只在本地完成，确认前不提交任何生成请求。" />
+            </StackPanel>
+
+            <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" />
+
+            <!-- A. 源视频 -->
+            <Border Style="{StaticResource CardBorder}">
+                <StackPanel Spacing="14">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="导入视频" Style="{StaticResource AccentButtonStyle}" Click="Import_Click" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock x:Name="SourceName" FontWeight="SemiBold" Text="尚未导入视频" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="SourceMeta" Style="{StaticResource HintText}" Text="支持 mp4 / mov / webm" />
+                        </StackPanel>
+                        <TextBlock x:Name="EngineText" Grid.Column="2" Style="{StaticResource HintText}"
+                                   VerticalAlignment="Center" Text="切段引擎：检测中…" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="SplitModeCombo" Header="切段模式" HorizontalAlignment="Stretch"
+                                  SelectedIndex="0" SelectionChanged="SplitMode_SelectionChanged">
+                            <ComboBoxItem Content="固定秒数（默认）" Tag="fixed" />
+                            <ComboBoxItem Content="切镜检测" Tag="scene" />
+                        </ComboBox>
+                        <NumberBox x:Name="SegmentSecondsBox" Grid.Column="1" Header="单段秒数（1–15）"
+                                   Minimum="1.0" Maximum="15.0" SmallChange="1.0"
+                                   SpinButtonPlacementMode="Compact" HorizontalAlignment="Stretch" />
+                        <TextBlock x:Name="SplitHint" Grid.Column="2" Style="{StaticResource HintText}"
+                                   VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                        <Button x:Name="SplitButton" Grid.Column="3" Content="切段" Click="Split_Click"
+                                VerticalAlignment="Bottom" />
+                    </Grid>
+
+                    <TextBlock x:Name="SplitResult" Style="{StaticResource HintText}" />
+                </StackPanel>
+            </Border>
+
+            <!-- B. 分段 -->
+            <Border Style="{StaticResource CardBorder}">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SegmentHeader" Style="{StaticResource SectionTitle}" Text="分段（0 段 · 已选 0）" />
+                        <Button Grid.Column="1" Content="全选" Margin="0,0,8,0" Click="SelectAll_Click" />
+                        <Button Grid.Column="2" Content="全不选" Click="SelectNone_Click" />
+                    </Grid>
+
+                    <TextBox x:Name="BatchPromptBox" Header="本批提示词（每段以首帧重新生成，走图生 first_frame）"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
+                             TextChanged="BatchPrompt_TextChanged" />
+
+                    <!-- 续接内嵌在生成动作里：勾选要生成的段，并决定这段要不要接上一段 -->
+                    <Border Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox x:Name="AnchorToggle" Content="衔接上一段（续接）"
+                                          Checked="AnchorToggle_Changed" Unchecked="AnchorToggle_Changed" />
+                                <TextBlock Grid.Column="1" Style="{StaticResource HintText}"
+                                           VerticalAlignment="Center"
+                                           Text="开启后，本批每段会拿「已生成结果」的尾巴当首片段（first_clip）接着写，接缝才不会跳。模型单次上限 15s，要更长就靠这样一段段接。" />
+                            </Grid>
+                            <Grid x:Name="AnchorPanel" ColumnSpacing="12" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="170" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="AnchorSourceCombo" Header="从哪段续接（视频池）"
+                                          HorizontalAlignment="Stretch" SelectionChanged="AnchorSource_Changed" />
+                                <NumberBox x:Name="AnchorTailBox" Grid.Column="1" Header="取尾部秒数（2–10）"
+                                           Minimum="2.0" Maximum="10.0" SmallChange="1.0"
+                                           SpinButtonPlacementMode="Compact" ValueChanged="AnchorTail_Changed" />
+                            </Grid>
+                            <TextBlock x:Name="AnchorHint" Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Height="360">
+                        <ListView x:Name="SegmentList" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="svc:LongVideoSegment">
+                                    <Grid ColumnSpacing="12" Padding="0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="112" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" MinWidth="0"
+                                                  VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Width="112" Height="63" CornerRadius="6"
+                                                Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                            <Grid>
+                                                <TextBlock Text="无缩略图" FontSize="11" Opacity="0.5"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image Source="{x:Bind Thumb, Mode=OneWay}" Stretch="UniformToFill" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <TextBlock Text="{x:Bind Label}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{x:Bind RangeLabel, Mode=OneWay}" Opacity="0.75" />
+                                                <TextBlock Text="{x:Bind DurationLabel, Mode=OneWay}" Opacity="0.5" FontSize="12" />
+                                            </StackPanel>
+                                            <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" FontSize="12" Opacity="0.9" />
+                                            <TextBlock Text="{x:Bind Error, Mode=OneWay}" FontSize="12"
+                                                       Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{x:Bind ErrorVisibility, Mode=OneWay}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6"
+                                                    VerticalAlignment="Center">
+                                            <Button Content="预览" Click="SegmentPreview_Click" Tag="{x:Bind Index}" />
+                                            <Button Content="重试" Click="SegmentRetry_Click" Tag="{x:Bind Index}"
+                                                    Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="SegmentEmpty" Text="导入视频后点「切段」；分段只是本地计算，不会提交生成。"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Opacity="0.55" TextWrapping="Wrap" TextAlignment="Center" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="GenerateSelectedButton" Content="生成所选（0）"
+                                Style="{StaticResource AccentButtonStyle}" Click="GenerateSelected_Click" />
+                        <TextBlock x:Name="GenerateHint" Grid.Column="1" Style="{StaticResource HintText}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 预览 -->
+            <Border x:Name="PreviewCard" Style="{StaticResource CardBorder}" Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="PreviewTitle" FontSize="16" FontWeight="SemiBold" Text="分段预览" />
+                    <MediaPlayerElement x:Name="SegmentPlayer" Height="300" AreTransportControlsEnabled="True"
+                                        Stretch="Uniform" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <NumberBox x:Name="TrimStartBox" Header="起点（秒）" Minimum="0.0" SmallChange="0.1"
+                                   SpinButtonPlacementMode="Compact" />
+                        <NumberBox x:Name="TrimDurationBox" Grid.Column="1" Header="时长（秒）"
+                                   Minimum="1.0" Maximum="15.0" SmallChange="0.5" SpinButtonPlacementMode="Compact" />
+                        <Button Grid.Column="2" Content="应用调整" Click="ApplyTrim_Click" VerticalAlignment="Bottom" />
+                        <Button Grid.Column="3" Content="重新预览" Click="RefreshPreview_Click" VerticalAlignment="Bottom" />
+                        <TextBlock x:Name="PreviewHint" Grid.Column="4" Style="{StaticResource HintText}"
+                                   VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- C. 视频池 + 官方续接 -->
+            <Border Style="{StaticResource CardBorder}">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="PoolHeader" Style="{StaticResource SectionTitle}" Text="已生成视频池（0）" />
+                    <TextBlock x:Name="PoolEmpty" Style="{StaticResource HintText}"
+                               Text="池为空：生成成功的片段会自动进入这里，之后才能作为官方续接的首片段。" />
+                    <ListView x:Name="PoolList" MaxHeight="300" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12" Padding="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="112" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0"
+                                              VerticalAlignment="Center"
+                                              Visibility="{Binding SelectVisibility}" />
+                                    <Border Grid.Column="1" Width="112" Height="63" CornerRadius="6"
+                                            Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                        <Grid>
+                                            <TextBlock Text="无缩略图" FontSize="11" Opacity="0.5"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <Image Source="{Binding Thumb}" Stretch="UniformToFill" />
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding SourceLabel}" Opacity="0.7" FontSize="12" />
+                                        <TextBlock Text="{Binding ContinueHint}" Opacity="0.55" FontSize="12"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button Grid.Column="3" Content="设为首片段" Click="UseAsFirstClip_Click"
+                                            VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Border Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="8" Padding="14">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="官方续接（media type = first_clip）" FontWeight="SemiBold" />
+                            <TextBlock x:Name="ContinueTarget" Style="{StaticResource HintText}" Text="首片段：未选择" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="180" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="ContinueModelCombo" Header="续写模型"
+                                          HorizontalAlignment="Stretch" SelectionChanged="ContinueInput_Changed" />
+                                <NumberBox x:Name="ContinueDurationBox" Grid.Column="1" Header="输出总时长（2–15s）"
+                                           Minimum="2.0" Maximum="15.0" SmallChange="1.0"
+                                           SpinButtonPlacementMode="Compact" ValueChanged="ContinueNumber_Changed" />
+                            </Grid>
+                            <TextBox x:Name="ContinuePromptBox" Header="续接提示词" TextWrapping="Wrap"
+                                     MinHeight="56" PlaceholderText="描述下一段要发生什么，保持主体一致"
+                                     TextChanged="ContinueInput_TextChanged" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ContinueButton" Content="官方续接生成" Click="Continue_Click" />
+                                <TextBlock x:Name="ContinueHint" Grid.Column="1" Style="{StaticResource HintText}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- D. 本地拼接 -->
+            <Border Style="{StaticResource CardBorder}">
+                <StackPanel Spacing="10">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="本地拼接（可选）" />
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="用 ffmpeg 把池中片段硬拼成一个文件：这是本地剪辑，不是官方续接，接缝处不保证连贯，也不叫「无缝」。" />
+                    <ToggleSwitch x:Name="StitchToggle" Header="启用本地拼接（默认关）"
+                                  OnContent="已启用" OffContent="已关闭" Toggled="StitchToggle_Toggled" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="StitchButton" Content="拼接所选片段" Click="Stitch_Click" IsEnabled="False" />
+                        <TextBlock x:Name="StitchHint" Grid.Column="1" Style="{StaticResource HintText}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock x:Name="StitchResult" Style="{StaticResource HintText}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

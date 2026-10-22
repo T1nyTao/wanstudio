@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WanStudio.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="WanStudio">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <NavigationView
+        x:Name="NavView"
+        PaneDisplayMode="Left"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="True"
+        Loaded="NavView_Loaded"
+        SelectionChanged="NavView_SelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem Content="新建视频" Tag="new" IsSelected="True">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE710;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="任务" Tag="tasks">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE8FD;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="长视频" Tag="long">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE714;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <Frame x:Name="NavFrame" />
+    </NavigationView>
+</Window>

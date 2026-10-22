@@ -1,0 +1,46 @@
+# 构建产物
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.binlog
+
+# 生成结果与本地素材（含个人内容，不进仓库）
+outputs/
+fixtures/
+cache/
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.avi
+
+# 运行期数据与日志
+*.log
+*.jsonl
+qa/_tmp/
+qa/*.png
+crash-*.txt
+
+# 测试辅助工具产物
+qa-tool/
+
+# 临时文件
+*.tmp
+*.bak
+# 截图与一次性证据（个人环境痕迹）
+/*.png
+qa/*.txt
+qa/*.json
+qa/*.ps1
+
+# agent 记忆 / 内部交接
+.workbuddy/
+HANDOFF-PROMPT-FOR-NEXT-AI.md
+PROMPT-*-Replace.md
+
+# Python 缓存
+__pycache__/
+*.pyc

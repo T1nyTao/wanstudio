@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WanStudio.Pages.TasksPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" ColumnSpacing="16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.1*" />
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.ColumnSpan="2" Style="{StaticResource TitleTextBlockStyle}" Text="任务" />
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Opacity="0.7" TextWrapping="Wrap"
+                   Text="进行中可取消；成功后可打开文件；失败会显示明确错误（含缺 Key）。" />
+
+        <ListView x:Name="TaskList" Grid.Row="2" SelectionChanged="TaskList_SelectionChanged">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Spacing="4" Padding="0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Prompt}" TextWrapping="WrapWholeWords" MaxLines="2" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding StatusText}" Opacity="0.8" Margin="12,0,0,0" />
+                        </Grid>
+                        <TextBlock Opacity="0.65" FontSize="12">
+                            <Run Text="{Binding Model}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding Resolution}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding Duration}" />
+                            <Run Text="s" />
+                        </TextBlock>
+                        <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="4" />
+                        <TextBlock Text="{Binding Error}" Foreground="{ThemeResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" FontSize="12" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Grid Grid.Row="2" Grid.Column="1" RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="CancelButton" Content="取消" Click="CancelButton_Click" IsEnabled="False" />
+                <Button x:Name="RetryButton" Content="重试" Click="RetryButton_Click" IsEnabled="False" />
+                <Button x:Name="OpenFolderButton" Content="打开文件" Click="OpenFolderButton_Click" IsEnabled="False" />
+                <Button x:Name="SaveAsButton" Content="另存为…" Click="SaveAsButton_Click" IsEnabled="False" />
+            </StackPanel>
+            <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="8">
+                <Grid>
+                    <MediaPlayerElement x:Name="Player" AreTransportControlsEnabled="True" Stretch="Uniform"
+                                        Visibility="Collapsed" />
+                    <TextBlock x:Name="PreviewEmpty" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Opacity="0.55" Text="选中任务后在此预览" TextWrapping="Wrap" TextAlignment="Center" />
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="2" Spacing="4">
+                <TextBlock x:Name="PreviewPath" Visibility="Collapsed" Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+                <TextBlock x:Name="DetailText" Opacity="0.75" TextWrapping="Wrap" />
+                <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

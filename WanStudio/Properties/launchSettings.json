@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WanStudio (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WanStudio (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WanStudio.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Padding="24,16,24,16" Spacing="16" MaxWidth="720">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="设置" />
+            <TextBlock Opacity="0.7" TextWrapping="Wrap"
+                       Text="API Key 写入本机 Credential Locker；模型与 Endpoint 保存在本地配置文件。" />
+
+            <ComboBox x:Name="PlatformCombo" Header="API 平台" Width="420"
+                      SelectionChanged="PlatformCombo_SelectionChanged" />
+            <TextBlock x:Name="PlatformNote" Opacity="0.7" TextWrapping="Wrap" />
+            <TextBox x:Name="EndpointBox" Header="接口地址（可手改，选平台会自动填）"
+                     PlaceholderText="https://cn-beijing.maas.qianwenaiapi.com" />
+            <TextBox x:Name="ProfileBox" Header="密钥配置名" PlaceholderText="default" />
+            <PasswordBox x:Name="ApiKeyBox" Header="API Key" PasswordRevealMode="Peek" />
+            <TextBlock x:Name="KeyStatusText" Opacity="0.7" TextWrapping="Wrap" />
+            <ComboBox x:Name="ModelCombo" Header="默认模型" Width="360"
+                      SelectionChanged="ModelCombo_SelectionChanged" />
+            <TextBox x:Name="OutputDirBox" Header="输出目录"
+                     PlaceholderText="Desktop\Wan3.0\outputs" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button x:Name="SaveButton" Content="保存"
+                        Style="{StaticResource AccentButtonStyle}" Click="SaveButton_Click" />
+                <Button x:Name="ClearKeyButton" Content="清除密钥" Click="ClearKeyButton_Click" />
+                <Button x:Name="TestButton" Content="探测模型接口" Click="TestButton_Click" />
+            </StackPanel>
+
+            <!-- 权限与存储位置：默认普通权限，需要时才提权 -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="16">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="运行权限与配置位置" FontWeight="SemiBold" />
+                    <TextBlock x:Name="ElevationText" Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+                    <TextBlock x:Name="SettingsPathText" Opacity="0.7" FontSize="12"
+                               TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <Button x:Name="ElevateButton" Content="以管理员重启" Click="ElevateButton_Click" />
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
